@@ -11,10 +11,11 @@
     "express": "^4.15.3",
     "lodash": "^4.17.4",
     "mongoose": "^4.11.0",
+    "rxjs": "^5.4.2",
     "ws": "^3.0.0"
   },
   "scripts": {
-    "start": "nodemon index.js --exec babel-node --presets es2015",
+    "start": "nodemon --inspect index.js --exec babel-node --presets es2015",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

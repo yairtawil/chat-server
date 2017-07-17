@@ -3,9 +3,11 @@ const http = require('http');
 const url = require('url');
 const WebSocket = require('ws');
 const cors = require('cors');
-const dbRouter = require('./db/api');
+const dbRouter = require('./db/api').apiRouter;
 const bodyParser = require('body-parser');
 const app = express();
+const userInstance = require('./db/api').userInstance;
+const Message = require('./db/models/Message');
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -16,14 +18,33 @@ let count = 0 ;
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', function connection(ws, req) {
-    const location = url.parse(req.url, true);
+wss.broadcase = (data) => {
+    wss.clients.forEach((client) => {
+        client.send(data);
+    })
+};
 
-    ws.on('message', function incoming(message) {
-        ws.send(message + '           yairtawil' + count);
-        count = count + 1;
+wss.on('connection', (ws, req) => {
+    ws.id = userInstance.id;
+    console.log(userInstance.username + "open");
+    userInstance.UpdateConnected(true);
+
+    ws.on('close', () => {
+        userInstance.UpdateConnected(false);
+        console.log(userInstance.username + " is Close")
     });
-    ws.send('something');
+
+    ws.on('message', (message) => {
+        ws.send(message);
+        const messageObject = JSON.parse(message);
+        Message.create({from: messageObject.from, to: messageObject.to, text: messageObject.text, date: messageObject.date}, (err, createResult) => {
+            wss.clients.forEach(client => {
+                if(messageObject.to == client.id) {
+                    client.send(message);
+                }
+            });
+        });
+    });
 });
 
 server.listen(8080, function listening() {
