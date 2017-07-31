@@ -1,4 +1,5 @@
 import * as _ from 'lodash';
+import * as RX from 'rxjs';
 
 const Message = require('./models/Message');
 const express = require('express');
@@ -41,7 +42,6 @@ apiRouter.post('/login', (req, res) => {
                 res.sendStatus(401);
             } else {
                 currentUser = user;
-                console.log("currentUser ", currentUser);
                 res.json(user);
             }
         }
@@ -58,7 +58,6 @@ apiRouter.get('/user/:userId', (req, res) => {
                 res.sendStatus(401);
             } else {
                 currentUser = user;
-                console.log("currentUser ", currentUser);
                 res.json(user);
             }
         }
@@ -67,14 +66,23 @@ apiRouter.get('/user/:userId', (req, res) => {
 
 apiRouter.get('/:userId/friends', (req, res) => {
     const userId = req.params.userId;
-    User.find({_id: {$ne: userId}} , ['_id', 'username', 'age', 'connected'], (err, user) => {
+    User.find({_id: {$ne: userId}} , ['_id', 'username', 'age', 'connected'], (err, users) => {
         if(err) {
             res.sendStatus(401);
         } else {
-            if(_.isNil(user)) {
+            if(_.isNil(users)) {
                 res.sendStatus(401);
             } else {
-                res.json(user);
+                users.forEach((friend, index, array) => {
+                    const friendId = friend._id;
+                    messagesCount(userId, friendId).subscribe((count)=>{
+                        // array[index] = Object.assign(array[index]._doc, {messagesCount: count});
+                        if (index === array.length - 1) {
+                            res.json(users);
+
+                        }
+                    })
+                });
             }
         }
     });
@@ -92,6 +100,14 @@ apiRouter.get('/:userId/messages/:friendId', (req, res) => {
             res.json(result.reverse());
         });
 });
+
+function messagesCount(userId, friendId) {
+    return RX.Observable.create((observe) => {
+        Message.count({$or: [{from: userId, to: friendId}, {to: userId, from: friendId}]}, (err, res) => {
+            observe.next(res);
+        });
+    })
+};
 
 class UserInstance {
     UpdateConnected(connected) {

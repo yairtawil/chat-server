@@ -37,13 +37,25 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (message) => {
         ws.send(message);
         const messageObject = JSON.parse(message);
-        Message.create({from: messageObject.from, to: messageObject.to, text: messageObject.text, date: messageObject.date}, (err, createResult) => {
-            wss.clients.forEach(client => {
-                if(messageObject.to == client.id) {
-                    client.send(message);
-                }
-            });
-        });
+        switch (messageObject.type) {
+            case 'message':
+                Message.create({from: messageObject.from, to: messageObject.to, text: messageObject.text, date: messageObject.date}, (err, createResult) => {
+                    wss.clients.forEach(client => {
+                        if(messageObject.to == client.id) {
+                            client.send(message);
+                        }
+                    });
+                });
+                break;
+            case 'typing':
+                wss.clients.forEach(client => {
+                    if(messageObject.to == client.id) {
+                        client.send(message);
+                    }
+                });
+                break;
+        }
+
     });
 });
 
