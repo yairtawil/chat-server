@@ -13,25 +13,25 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use('/api', dbRouter);
 
-let count = 0 ;
+let count = 0;
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({server});
 
 wss.broadcase = (data) => {
     wss.clients.forEach((client) => {
         client.send(data);
-    })
+    });
 };
 
 wss.on('connection', (ws, req) => {
     ws.id = userInstance.id;
-    console.log(userInstance.username + "open");
+    console.log(userInstance.username + 'open');
     userInstance.UpdateConnected(true);
 
     ws.on('close', () => {
         userInstance.UpdateConnected(false);
-        console.log(userInstance.username + " is Close")
+        console.log(userInstance.username + ' is Close');
     });
 
     ws.on('message', (message) => {
@@ -39,9 +39,14 @@ wss.on('connection', (ws, req) => {
         const messageObject = JSON.parse(message);
         switch (messageObject.type) {
             case 'message':
-                Message.create({from: messageObject.from, to: messageObject.to, text: messageObject.text, date: messageObject.date}, (err, createResult) => {
+                Message.create({
+                    from: messageObject.from,
+                    to: messageObject.to,
+                    text: messageObject.text,
+                    date: messageObject.date
+                }, (err, createResult) => {
                     wss.clients.forEach(client => {
-                        if(messageObject.to == client.id) {
+                        if (messageObject.to == client.id) {
                             client.send(message);
                         }
                     });
@@ -49,7 +54,7 @@ wss.on('connection', (ws, req) => {
                 break;
             case 'typing':
                 wss.clients.forEach(client => {
-                    if(messageObject.to == client.id) {
+                    if (messageObject.to == client.id) {
                         client.send(message);
                     }
                 });
